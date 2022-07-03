@@ -3,11 +3,11 @@ import passport from 'passport';
 import fs from 'fs';
 import path from 'path';
 
-const app: Application = express();
+import { passportConfig } from './passport-config';
+passportConfig(passport);
 
+const app: Application = express();
 const logFolderPath: string = '/data/logfiles';
-const initializePassport = require('./passport-config');
-initializePassport(passport);
 
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.send('Hello')

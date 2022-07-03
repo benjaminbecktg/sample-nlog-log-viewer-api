@@ -1,6 +1,6 @@
 import { Strategy } from 'passport-http-bearer';
 
- let initialize = function (passport: any) {
+export function passportConfig (passport: any) {
     const authenticateUser = (token: any, done: any) => {
         if (token == 'mylogtoken') {
             return done(null, { username: 'system.admin' }, { scope: 'all' });
@@ -13,6 +13,4 @@ import { Strategy } from 'passport-http-bearer';
     console.log('Initalize Passport...');
 
     passport.use('bearer', new Strategy(authenticateUser));   
- }
-
- module.exports = initialize;
+}
