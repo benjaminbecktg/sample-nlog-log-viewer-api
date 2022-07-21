@@ -1,10 +1,16 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import mongodb, { MongoClient } from 'mongodb';
 import passport from 'passport';
 import fs from 'fs';
 import path from 'path';
 
 import { passportConfig } from './passport-config';
 passportConfig(passport);
+
+const mongoEnabled: boolean = true;
+const mongoUrl: string = 'mongodb://admin:password@localhost:27017';
+const mongoCollection: string = 'logs';
+const mongoClient: MongoClient = new MongoClient(mongoUrl);
 
 const app: Application = express();
 const logFolderPath: string = '/data/logfiles';
@@ -13,12 +19,23 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.send('Hello')
 });
 
-app.get('/api/files', passport.authenticate('bearer', { session: false }), (req: Request, res: Response, next: NextFunction) => {
+app.get('/api/files', passport.authenticate('bearer', { session: false }), async (req: Request, res: Response, next: NextFunction) => {
     const filterType:any = req.query.type || 'error';
 
     try {
         if (!fs.existsSync(logFolderPath)) {
           fs.mkdirSync(logFolderPath);
+        }
+
+        if (mongoEnabled) {
+            let client = await mongoClient.connect();
+            let db = client.db(mongoCollection);
+        
+            db.collection('audits').insertOne({
+                date: new Date().toISOString(),
+                method: 'get',
+                action: 'files'
+            });
         }
     } catch (err) {
         console.error(err);
@@ -38,13 +55,24 @@ app.get('/api/files', passport.authenticate('bearer', { session: false }), (req:
     res.send(fileNames);
 });
 
-app.get('/api/logs', passport.authenticate('bearer', { session: false }), (req: Request, res: Response, next: NextFunction) => {
+app.get('/api/logs', passport.authenticate('bearer', { session: false }), async (req: Request, res: Response, next: NextFunction) => {
     const filterType:any = req.query.type || 'error';
     const filterFile:any = req.query.filename || '';
 
     try {
         if (!fs.existsSync(logFolderPath)) {
           fs.mkdirSync(logFolderPath);
+        }
+
+        if (mongoEnabled) {
+            let client = await mongoClient.connect();
+            let db = client.db(mongoCollection);
+        
+            db.collection('audits').insertOne({
+                date: new Date().toISOString(),
+                method: 'get',
+                action: 'logs'
+            });
         }
     } catch (err) {
         console.error(err);
@@ -91,6 +119,23 @@ app.get('/api/logs', passport.authenticate('bearer', { session: false }), (req: 
             
             current += 3;
         }
+    }
+
+    res.send(result);
+});
+
+app.get('/api/audits', passport.authenticate('bearer', { session: false }), async (req: Request, res: Response, next: NextFunction) => {
+    let result: any;
+
+    try {
+        if (mongoEnabled) {
+            let client = await mongoClient.connect();
+            let db = client.db(mongoCollection);
+        
+            result = await db.collection('audits').find({}).toArray();
+        }
+    } catch (err) {
+        console.error(err);
     }
 
     res.send(result);
